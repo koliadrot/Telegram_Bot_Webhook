@@ -5,10 +5,13 @@ from flask_sslify import SSLify
 
 from data_api_bot import *
 from coinmarketcap import *
+from send_email import *
 
 import requests
 import json
 import datetime
+import sendgrid
+import os
 
 
 app=Flask(__name__)
@@ -41,9 +44,14 @@ def index():
             last_chat_text=r['message']['text']
         except KeyError:
             pass
+        #The bot deletes obscene language messages found in bad_words (see module data_api_bot)
+        #Бот удаляет сообщения с нецензурной лексикой найденные в bad_words(см.модуль data_api_bot)
+        if any(True if t in g else False for t in bad_words for g in last_chat_text.lower().split()):
+            bot.delete_message(last_chat_id,last_message_id)
+            bot.send_message(last_chat_id,prejudice)
         #Welcome bot depending on the time of day with a time shift
         #Приветствие бота в зависимости от времени суток со сдвигом по времени
-        if last_chat_text.lower()[0]=="/" and last_chat_text.lower()[1::] in greetings and 6 <= now.hour+2 < 12:
+        elif last_chat_text.lower()[0]=="/" and last_chat_text.lower()[1::] in greetings and 6 <= now.hour+2 < 12:
             bot.send_message(last_chat_id, f'Доброе утро, {last_chat_name}!')
         elif last_chat_text.lower()[0]=="/" and last_chat_text.lower()[1::] in greetings and 12 <= now.hour+2 < 17:
             bot.send_message(last_chat_id, f'Добрый день, {last_chat_name}!')
@@ -59,11 +67,11 @@ def index():
         #Отправляет сообщение info(см.модуль data_api_bot).Обязательно нужно поставить имя вашего бота в '/info@<your bot name`s>'
         elif last_chat_text.lower()== '/info@<your bot name`s>' or last_chat_text.lower()== '/info':
             bot.send_message(last_chat_id,info)
-        #The bot deletes obscene language messages found in bad_words (see module data_api_bot)
-        #Бот удаляет сообщения с нецензурной лексикой найденные в bad_words(см.модуль data_api_bot)
-        if bad_words & {last_chat_text.lower()}:
-            bot.delete_message(last_chat_id,last_message_id)
-            bot.send_message(last_chat_id,prejudice)
+        #Sends messages to email on behalf of the bot, after which the message in the chat will be deleted for the sake of anonymity correspondence
+        #Отправляет сообщения на email от имени бота, после чего сообщение в чате будет удалено ради анонимности переписки
+        elif last_chat_text.lower().split('/')[1].strip()=='sendemail':
+                send_email(last_chat_text.split('/')[2].strip(),last_chat_text.split('/')[3].strip(),last_chat_text.split('/')[4].strip())
+                bot.delete_message(last_chat_id,last_message_id)
     return "<h1>Welcome!</h1>"
 
 

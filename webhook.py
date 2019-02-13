@@ -18,5 +18,4 @@ def get_Webhook_info():
     return r.json()
 
 if __name__=="__main__":
-    
     print(get_Webhook_info())
