@@ -6,6 +6,7 @@ from flask_sslify import SSLify
 from data_api_bot import *
 from coinmarketcap import *
 from send_email import *
+from send_sms import *
 
 import requests
 import json
@@ -29,7 +30,7 @@ class BotHandler:
         def delete_message(self,chat_id,message_id):
                 params = {'chat_id':chat_id,'message_id': message_id}
                 resp = requests.post(self.api_url + 'deleteMessage', params)
-                
+
 bot = BotHandler(token)
 
 @app.route('/',methods=['POST','GET'])
@@ -70,7 +71,15 @@ def index():
         #Sends messages to email on behalf of the bot, after which the message in the chat will be deleted for the sake of anonymity correspondence
         #Отправляет сообщения на email от имени бота, после чего сообщение в чате будет удалено ради анонимности переписки
         elif last_chat_text.lower().split('/')[1].strip()=='sendemail':
-                send_email(last_chat_text.split('/')[2].strip(),last_chat_text.split('/')[3].strip(),last_chat_text.split('/')[4].strip())
+            send_email(last_chat_text.split('/')[2].strip(),last_chat_text.split('/')[3].strip(),last_chat_text.split('/')[4].strip())
+            bot.delete_message(last_chat_id,last_message_id)
+	#Sends messages to email on behalf of the bot, after which the message in the chat will be deleted for the sake of anonymity correspondence
+        #Отправляет смс сообщение от имени бота, после чего сообщение будет в чате удалено ради анонимности переписки
+        elif last_chat_text.lower().split('/')[1].strip()=='sendsms':
+	    #This condition is required only for trial version
+	    #Данное условие требуется только для пробной версии
+            if last_chat_text.split('/')[2].strip() in list_verify_numbers:
+                send_sms(last_chat_text.split('/')[2].strip(),"blazz@tg.org: "+last_chat_text.split('/')[3].strip())
                 bot.delete_message(last_chat_id,last_message_id)
     return "<h1>Welcome!</h1>"
 
